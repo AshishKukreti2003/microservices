@@ -1,0 +1,97 @@
+---
+version: '3.7'
+services:
+
+  discovery-server:
+    image: discoveryimage:latest
+    container_name: discoverycontainerone
+    ports:
+      - "8761:8761"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - projectnetwork
+  login-service:
+    container_name: logincontainerone
+    image: loginimage:latest
+    ports:
+      - "1003:1003"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - spring.datasource.url=jdbc:mysql://localhost:3306/user
+    depends_on:
+      - discovery-server
+      - api-gateway
+      - mysql-user
+    networks:
+      - projectnetwork
+
+  product-service:
+    container_name: productcontainerone
+    image: productimage:latest
+    ports:
+      - "1004:1004"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - spring.datasource.url=jdbc:mysql://mysql-inventory:3306/inventory?autoReconnect=true&useSSL=false
+    depends_on:
+      - mysql-inventory
+      - discovery-server
+      - api-gateway
+      - login-service
+    networks:
+      - projectnetwork
+
+  inventory-service:
+    container_name: inventorycontainerone
+    image: inventoryimage:latest
+    ports:
+      - "1005:1005"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - spring.datasource.url=jdbc:mysql://mysql-inventory:3306/inventory?autoReconnect=true&useSSL=false
+    depends_on:
+      - mysql-inventory
+      - discovery-server
+      - api-gateway
+      - login-service
+    networks:
+      - projectnetwork
+  api-gateway:
+    image: apiimage:latest
+    container_name: apicontainerone
+    ports:
+      - "8181:8080"
+    expose:
+      - "8181"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY= TRACE
+    depends_on:
+      - discovery-server
+    networks:
+      - projectnetwork
+
+  mysql-inventory:
+    container_name: mysql-inventory
+    image: mysql:8
+    environment:
+      MYSQL_DATABASE: inventory
+      MYSQL_ROOT_PASSWORD: HEX5hdXf@1
+    ports:
+      - "3307:3306"
+    networks:
+      - projectnetwork
+
+  mysql-user:
+    container_name: mysql-user
+    image: mysql:8
+    environment:
+      MYSQL_DATABASE: user
+      MYSQL_ROOT_PASSWORD: HEX5hdXf@1
+    networks:
+      - projectnetwork
+    ports:
+      - "3308:3306"
+networks:
+  projectnetwork:
